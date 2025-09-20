@@ -1,0 +1,18 @@
+[influx]
+org =
+url =
+token =
+bucket = chmi_data
+measurements = T
+fields = Temperature
+tag_device = agent_host
+field_temperature = Teplota
+field_signal = PrijimanaUroven
+window = 10m
+range = -2h
+
+[mysql]
+user =
+password =
+host =
+port =

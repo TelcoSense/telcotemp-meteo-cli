@@ -144,6 +144,11 @@ ENV/
 env.bak/
 venv.bak/
 
+
+# Configuration files
+*.ini
+!*.ini.dist
+
 # Spyder project settings
 .spyderproject
 .spyproject
