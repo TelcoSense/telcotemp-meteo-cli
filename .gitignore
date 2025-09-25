@@ -2,6 +2,7 @@
 configs/app.ini
 configs/compute.ini
 configs/database.ini
+outputs_web/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
