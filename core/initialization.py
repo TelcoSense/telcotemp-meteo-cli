@@ -22,5 +22,8 @@ def initialize(config):
     geo_proc = GeographicalProcessing()
     state = geo_proc.load_country_data(paths["country_file"])
     czech_rep = geo_proc.json_to_geodataframe(state)
-    elevation_data, transform_matrix, crs = geo_proc.load_elevation_data(paths["dem_tif"])
+    czech_rep = czech_rep.to_crs("EPSG:3857")
+    elevation_data, transform_matrix, crs = geo_proc.load_elevation_data(
+        paths["dem_tif"]
+    )
     return db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs

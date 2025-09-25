@@ -7,6 +7,7 @@ from visualization.visualization import map_plotting
 import gc
 import datetime
 import traceback
+from pyproj import Transformer
 
 backend_logger = logging.getLogger("backend_logger")
 
@@ -62,17 +63,26 @@ def processing_loop(
         df = get_data(config)
         df = prepare_data(df, db_ops)
 
+        # Mercator for web -- transformation
+        transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+        xs, ys = transformer.transform(
+            df["Longitude"].to_numpy(), df["Latitude"].to_numpy()
+        )
+        df["X"] = xs
+        df["Y"] = ys
+
         image_name, image_time = collect_data_summary(df)
         compute_config = config.get_grid_config()
         interpolation_config = config.get_interpolation_config()
 
+        # interpolation now uses X, Y instead of Lon, Lat
         grid_x, grid_y, grid_z = spatial_interpolation(
             df,
             czech_rep,
             geo_proc,
             elevation_data,
             transform_matrix,
-            crs,
+            crs,  # ideally set to EPSG:3857
             variogram_model=interpolation_config["variogram_model"],
             nlags=interpolation_config["nlags"],
             regression_model_type=interpolation_config["regression_model"],
