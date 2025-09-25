@@ -4,6 +4,7 @@ import logging
 
 backend_logger = logging.getLogger("backend_logger")
 
+
 def get_data(config):
     try:
         influx_config = config.get_influx_config()
@@ -19,18 +20,20 @@ from(bucket: "{influx_config['bucket']}")
         with InfluxDBClient(
             url=influx_config["url"],
             token=influx_config["token"],
-            org=influx_config["org"]
+            org=influx_config["org"],
         ) as client:
             result = client.query_api().query(query=query)
 
         rows = []
         for table in result:
             for rec in table.records:
-                rows.append({
-                    "Time": rec.get_time(),
-                    "Temperature": rec.get_value(),
-                    "ID": rec.values["_field"],
-                })
+                rows.append(
+                    {
+                        "Time": rec.get_time(),
+                        "Temperature": rec.get_value(),
+                        "ID": rec.values["_field"],
+                    }
+                )
 
         df = pd.DataFrame(rows, columns=["Time", "Temperature", "ID"])
         if df.empty:

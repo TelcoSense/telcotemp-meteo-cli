@@ -12,14 +12,18 @@ backend_logger = setup_logger(
     level=logging_config["level"],
     max_bytes=logging_config["max_bytes"],
     backups=logging_config["backups"],
-    fmt=logging_config["fmt"]
+    fmt=logging_config["fmt"],
 )
 
 
 def data_processing_loop():
-    db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs = initialize(config)
+    db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs = initialize(
+        config
+    )
     while True:
-        processing_loop(db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs, config)
+        processing_loop(
+            db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs, config
+        )
         wait_for_next_hour()
 
 

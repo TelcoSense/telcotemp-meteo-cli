@@ -1,7 +1,7 @@
 # data_processing.py
 import pandas as pd
 import logging
-from influx_manager import get_data
+from .influx_manager import get_data
 from geo.interpolation import spatial_interpolation
 from visualization.visualization import map_plotting
 import gc
@@ -10,14 +10,16 @@ import traceback
 
 backend_logger = logging.getLogger("backend_logger")
 
+
 def collect_data_summary(df):
 
-    image_time = pd.to_datetime(df["Time"].iloc[0]).ceil('h')
+    image_time = pd.to_datetime(df["Time"].iloc[0]).ceil("h")
 
     image_hour = image_time.strftime("%Y-%m-%d_%H%M")
     image_name = f"{image_hour}.png"
 
     return image_name, image_time
+
 
 def prepare_data(df: pd.DataFrame, db_ops) -> pd.DataFrame:
     """
@@ -45,14 +47,15 @@ def prepare_data(df: pd.DataFrame, db_ops) -> pd.DataFrame:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce")
 
-
     out = df[cols_out].copy()
-
 
     backend_logger.info("prepare_data: hotovo – %d řádků.", len(out))
     return out
 
-def processing_loop(db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs, config):
+
+def processing_loop(
+    db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs, config
+):
     start_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     backend_logger.info(f"Calculation started on {start_datetime}")
     try:
@@ -64,18 +67,25 @@ def processing_loop(db_ops, geo_proc, czech_rep, elevation_data, transform_matri
         interpolation_config = config.get_interpolation_config()
 
         grid_x, grid_y, grid_z = spatial_interpolation(
-            df, czech_rep, geo_proc, elevation_data, transform_matrix, crs,
+            df,
+            czech_rep,
+            geo_proc,
+            elevation_data,
+            transform_matrix,
+            crs,
             variogram_model=interpolation_config["variogram_model"],
             nlags=interpolation_config["nlags"],
             regression_model_type=interpolation_config["regression_model"],
             grid_x_points=compute_config["x_points"],
-            grid_y_points=compute_config["y_points"]
+            grid_y_points=compute_config["y_points"],
         )
 
         map_plotting(grid_x, grid_y, grid_z, czech_rep, image_name, config)
 
     except Exception as e:
-        backend_logger.error(f"Error during data processing round: {e}\n{traceback.format_exc()}")
+        backend_logger.error(
+            f"Error during data processing round: {e}\n{traceback.format_exc()}"
+        )
 
     finally:
         if "df" in locals():
