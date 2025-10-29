@@ -2,13 +2,17 @@ from sqlalchemy import create_engine
 from data.sql_manager import DatabaseOperations
 from geo.geographical_processing import GeographicalProcessing
 from datetime import datetime, timedelta
-from time import sleep
+from time import time, sleep
 
 
 def wait_for_next_hour():
-    now = datetime.now()
-    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    sleep((next_hour - now).seconds)
+    """Wait until the start of the next hour."""
+    current = datetime.datetime.now()
+    next_hour = (current + datetime.timedelta(hours=1)).replace(
+        minute=0, second=0, microsecond=0
+    )
+    wait_seconds = (next_hour - current).total_seconds()
+    time.sleep(wait_seconds)
 
 
 def initialize(config):
