@@ -1,7 +1,5 @@
 import datetime
 from data.calculation_engine import CalculationEngine
-from core.initialization import initialize, wait_for_next_hour
-from data.data_processing import processing_loop
 from core.log import LoggerManager
 from core.config import AppConfig
 import argparse
@@ -10,16 +8,6 @@ config = AppConfig()
 logging_config = config.get_logging_config()
 logger_manager = LoggerManager(config)
 backend_logger = logger_manager.get_logger("backend_logger")
-
-def data_processing_loop():
-    db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs = initialize(
-        config
-    )
-    while True:
-        processing_loop(
-            db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs, config
-        )
-        wait_for_next_hour()
 
 
 if __name__ == "__main__":
@@ -67,7 +55,7 @@ if __name__ == "__main__":
     processor = CalculationEngine(config, logger_manager)
     processor.data_processing_loop(
         first_run=args.first_run,
-        start_time=start_time,
-        end_time=end_time,
-        stations=stations,
+        start_time=start_time,  
+        end_time=end_time,      
+        stations=stations,       
     )

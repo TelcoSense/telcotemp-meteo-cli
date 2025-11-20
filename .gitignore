@@ -5,3 +5,5 @@ __pycache__/
 /configs/app.ini
 /configs/compute.ini
 /configs/database.ini
+.venv/
+.vscode/

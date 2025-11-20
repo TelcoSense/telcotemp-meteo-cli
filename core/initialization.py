@@ -1,12 +1,15 @@
 from sqlalchemy import create_engine
 from data.sql_manager import DatabaseOperations
 from geo.geographical_processing import GeographicalProcessing
-from datetime import datetime, timedelta
-from time import time, sleep
+import datetime
+import time
 
 
 def wait_for_next_hour():
-    """Wait until the start of the next hour."""
+    """
+    Waits until the start of the next hour.
+    Useful for scheduling periodic tasks.
+    """
     current = datetime.datetime.now()
     next_hour = (current + datetime.timedelta(hours=1)).replace(
         minute=0, second=0, microsecond=0
@@ -16,6 +19,14 @@ def wait_for_next_hour():
 
 
 def initialize(config):
+    """
+    Initializes all required components for data processing:
+    - Database connection and operations
+    - Geographical processing
+    - Country shape data
+    - Elevation data and transformation matrix
+    Returns tuple: (db_ops, geo_proc, czech_rep, elevation_data, transform_matrix, crs)
+    """
     db_config = config.get_mysql_config()
     paths = config.get_paths()
 

@@ -10,6 +10,10 @@ def setup_logger(
     backups=1,
     fmt="%(asctime)s -%(funcName)s - %(levelname)s - %(message)s",
 ):
+    """
+    Sets up a rotating file logger with the given parameters.
+    Returns a configured logger instance.
+    """
     formatter = logging.Formatter(fmt)
     handler = RotatingFileHandler(
         log_file, maxBytes=max_bytes, backupCount=backups, encoding="utf-8"
@@ -24,6 +28,9 @@ def setup_logger(
 
 
 class LoggerManager:
+    """
+    Manages named loggers for the application.
+    """
     def __init__(self, config):
         self.config = config
         self.loggers = {}
@@ -36,7 +43,7 @@ class LoggerManager:
             log_config = self.config.get_logging_config()
             self.loggers[name] = setup_logger(
                 name,
-                log_config.get(f"{name}_log", "default.log"),
+                log_config.get("backend_log", "app.log"),
                 level=log_config.get("level", "INFO"),
             )
         return self.loggers[name]

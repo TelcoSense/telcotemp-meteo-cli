@@ -4,18 +4,24 @@ import numpy as np
 import os
 import logging
 
-
 backend_logger = logging.getLogger("backend_logger")
 
 
 def map_plotting(
     grid_x, grid_y, grid_z, czech_rep, image_name, config, show_boundary=False
 ):
+    """
+    Plots interpolated temperature map for the given grid and saves it as PNG.
+    - Uses custom colormap and levels from config.
+    - Optionally draws country boundary.
+    - Automatically sets color scale based on median value.
+    - Saves image to configured directory.
+    """
     visualization_config = config.get_visualization()
-
     n_levels = visualization_config["n_levels"]
     colormap = visualization_config["colormap"]
 
+    # Default colormap if not provided in config
     if not colormap:
         colormap = [
             (0, "#4E00A6"),
@@ -41,6 +47,7 @@ def map_plotting(
             "custom_colormap", colormap, N=n_levels
         )
 
+        # Set color scale based on median value
         median_value = np.nanmedian(grid_z) - 2
         vmin = int(median_value) - 7
         vmax = int(median_value) + 7
@@ -62,7 +69,8 @@ def map_plotting(
 
         save_dir = visualization_config.get("images_dir", "outputs_web")
         os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, f"{image_name}")
+        base_name, ext = os.path.splitext(image_name)
+        save_path = os.path.join(save_dir, f"{base_name}_{vmin}_{vmax}{ext}")
 
         plt.savefig(
             save_path,

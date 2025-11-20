@@ -1,4 +1,3 @@
-# sql_manager.py
 import time
 import pandas as pd
 from sqlalchemy import text, bindparam
@@ -8,7 +7,16 @@ from sqlalchemy.orm import sessionmaker
 backend_logger = logging.getLogger("backend_logger")
 
 class DatabaseOperations:
+    """
+    Handles database operations for metadata enrichment of weather station data.
+    Provides caching and efficient bulk fetching of station coordinates and elevation.
+    """
+
     def __init__(self, engine):
+        """
+        Initializes DatabaseOperations with SQLAlchemy engine.
+        Sets up session factory and metadata caches.
+        """
         self.engine = engine
         self.Session = sessionmaker(bind=self.engine)
         self._ip_meta_cache = {}
@@ -16,12 +24,12 @@ class DatabaseOperations:
 
     def get_metadata(self, df: pd.DataFrame):
         """
-        K DF (Timestamp, Temperature, ID) přiřadí ONLY Latitude, Longitude, Elevation
-        z tabulky chmi_metadata.weather_stations (Y, X, elevation).
-        - drží logiku: cache → bulk fetch unikátních ID → průchod DF v pořadí → to_drop
-        - df se upraví in-place: přidá sloupce Longitude, Latitude, Elevation
-          a vyhodí se řádky bez nalezených metadat
-        - vrací trojici listů (latitudes, longitudes, elevations) v pořadí výsledného DF
+        Enriches DataFrame with Latitude, Longitude, Elevation from DB table chmi_metadata.weather_stations.
+        - Uses cache for already fetched stations.
+        - Bulk fetches missing station metadata.
+        - Drops rows without metadata.
+        - Adds columns: Longitude, Latitude, Elevation.
+        Returns lists of latitudes, longitudes, elevations in the order of resulting DataFrame.
         """
         t0 = time.perf_counter()
 
@@ -32,7 +40,7 @@ class DatabaseOperations:
             df["Elevation"] = pd.NA
             return [], [], []
 
-        # 0) připrav ID
+        # Prepare unique station IDs
         ids_series = df["ID"].astype(str).str.strip()
         unique_ids = sorted({sid for sid in ids_series if sid})
         backend_logger.debug(
@@ -40,11 +48,11 @@ class DatabaseOperations:
             len(df), len(unique_ids)
         )
 
-        # 1) cache
+        # 1) Use cache for already fetched stations
         cached = {sid: self._station_meta_cache[sid] for sid in unique_ids if sid in self._station_meta_cache}
         missing = [sid for sid in unique_ids if sid not in cached]
 
-        # 2) bulk fetch jen chybějících
+        # 2) Bulk fetch missing stations from DB
         fetched = {}
         if missing:
             try:
@@ -83,7 +91,7 @@ class DatabaseOperations:
 
         lookup = {**cached, **fetched}
 
-        # 3) průchod DF v pořadí řádků
+        # 3) Traverse DataFrame in row order, drop missing, collect metadata
         latitudes, longitudes, elevations = [], [], []
         to_drop = []
         have = 0
@@ -103,18 +111,18 @@ class DatabaseOperations:
             elevations.append(meta["elev"])
             have += 1
 
-        # 4) drop chybějících řádků a dosazení sloupců
+        # 4) Drop rows without metadata and assign columns
         if to_drop:
             df.drop(index=to_drop, inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-        # po dropu délky musí sedět
+        # Assign columns
         if len(df) == len(latitudes):
             df["Latitude"] = latitudes
             df["Longitude"] = longitudes
             df["Elevation"] = elevations
         else:
-            # (nemělo by nastat; pojistka)
+            # Fallback mapping (should not happen)
             map_lat = {rec["id"]: rec["lat"] for rec in lookup.values()}
             map_lon = {rec["id"]: rec["lon"] for rec in lookup.values()}
             map_elev = {rec["id"]: rec["elev"] for rec in lookup.values()}

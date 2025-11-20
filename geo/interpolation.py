@@ -22,11 +22,18 @@ def spatial_interpolation(
     grid_x_points=500,
     grid_y_points=500
 ):
+    """
+    Performs spatial interpolation (regression kriging) of temperature data.
+    - Generates grid over country bounds.
+    - Applies mask for valid country area.
+    - Uses elevation as covariate.
+    - Supports multiple regression models.
+    Returns grid_x, grid_y, grid_predicted_temp.
+    """
     backend_logger.info("spatial_interpolation start (model=%s, variogram=%s, nlags=%s)",
                         regression_model_type, variogram_model, nlags)
     try:
         rep_crs = getattr(rep, "crs", None) or "EPSG:4326"
-
         bounds = rep.total_bounds  # v CRS rep
         grid_x, grid_y = np.mgrid[
             bounds[0]:bounds[2]:complex(grid_x_points),
@@ -42,14 +49,11 @@ def spatial_interpolation(
         lat = df.loc[valid_points, 'Latitude'].values
         temp = df.loc[valid_points, 'Temperature'].values
 
+        # Transform coordinates to raster CRS
         to_raster_from_wgs = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
         x_pts_raster, y_pts_raster = to_raster_from_wgs.transform(lon, lat)
 
-        to_raster_from_rep = Transformer.from_crs(rep_crs, crs, always_xy=True)
-        grid_x_flat_rep = grid_x.ravel()
-        grid_y_flat_rep = grid_y.ravel()
-        grid_x_raster, grid_y_raster = to_raster_from_rep.transform(grid_x_flat_rep, grid_y_flat_rep)
-
+        # Elevation for measured points
         rows, cols = rowcol(transform_matrix, x_pts_raster, y_pts_raster)
         rows = np.clip(np.floor(rows).astype(int), 0, elevation_data.shape[0] - 1)
         cols = np.clip(np.floor(cols).astype(int), 0, elevation_data.shape[1] - 1)
@@ -58,6 +62,7 @@ def spatial_interpolation(
             mean_elev = np.nanmean(valid_elev)
             valid_elev = np.nan_to_num(valid_elev, nan=(0.0 if np.isnan(mean_elev) else mean_elev))
 
+        # Regression model selection
         if regression_model_type == 'linear':
             regression_model = LinearRegression()
         elif regression_model_type == 'random_forest':
@@ -69,14 +74,22 @@ def spatial_interpolation(
         else:
             raise ValueError(f"Unknown regression model type: {regression_model_type}")
 
+        # Fit regression kriging
         X_train = valid_elev.reshape(-1, 1)
         coords_train = np.c_[x_pts_raster, y_pts_raster]
         rk = RegressionKriging(
             regression_model=regression_model,
             variogram_model=variogram_model,
-            n_closest_points=nlags
+            nlags=nlags,
+            n_closest_points=20
         )
         rk.fit(X_train, coords_train, temp)
+
+        # Prepare grid for prediction
+        to_raster_from_rep = Transformer.from_crs(rep_crs, crs, always_xy=True)
+        grid_x_flat_rep = grid_x.ravel()
+        grid_y_flat_rep = grid_y.ravel()
+        grid_x_raster, grid_y_raster = to_raster_from_rep.transform(grid_x_flat_rep, grid_y_flat_rep)
 
         grid_rows, grid_cols = rowcol(transform_matrix, grid_x_raster, grid_y_raster)
         grid_rows = np.clip(np.floor(grid_rows).astype(int), 0, elevation_data.shape[0] - 1)

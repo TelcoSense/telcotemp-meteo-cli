@@ -3,6 +3,11 @@ import configparser
 
 
 class AppConfig:
+    """
+    Loads and provides access to application, database, and compute configuration.
+    Reads .ini files from the configs/ directory.
+    """
+
     def __init__(self, config_dir="configs"):
         self.config_dir = config_dir
         self.app = self._load("app.ini")
@@ -10,6 +15,9 @@ class AppConfig:
         self.compute = self._load("compute.ini")
 
     def _load(self, filename):
+        """
+        Loads a configuration file and returns a ConfigParser object.
+        """
         cfg = configparser.ConfigParser()
         path = os.path.join(self.config_dir, filename)
         if not os.path.exists(path):
@@ -19,6 +27,9 @@ class AppConfig:
 
     # --- APP ---
     def get_logging_config(self):
+        """
+        Returns logging configuration as a dictionary.
+        """
         lg = self.app["logging"]
         return {
             "level": lg.get("level", "INFO"),
@@ -29,6 +40,9 @@ class AppConfig:
         }
 
     def get_paths(self):
+        """
+        Returns paths configuration as a dictionary.
+        """
         p = self.app["paths"]
         return {
             "country_file": p.get("country_file"),
@@ -38,6 +52,9 @@ class AppConfig:
         }
 
     def get_visualization(self):
+        """
+        Returns visualization configuration as a dictionary.
+        """
         vis = self.app["visualization"] if "visualization" in self.app else {}
         colormap = vis.get("colormap", "[]")
         return {
@@ -47,6 +64,9 @@ class AppConfig:
 
     # --- DATABASE ---
     def get_mysql_config(self):
+        """
+        Returns MySQL database configuration as a dictionary.
+        """
         mysql = self.database["mysql"]
         return {
             "user": mysql.get("user"),
@@ -56,6 +76,9 @@ class AppConfig:
         }
 
     def get_influx_config(self):
+        """
+        Returns InfluxDB configuration as a dictionary.
+        """
         influx = self.database["influx"]
         return {
             "org": influx.get("org"),
@@ -73,6 +96,9 @@ class AppConfig:
 
     # --- COMPUTE ---
     def get_grid_config(self):
+        """
+        Returns grid configuration for interpolation as a dictionary.
+        """
         g = self.compute["grid"]
         return {
             "x_points": g.getint("x_points", 500),
@@ -81,6 +107,9 @@ class AppConfig:
         }
 
     def get_interpolation_config(self):
+        """
+        Returns interpolation configuration as a dictionary.
+        """
         itp = self.compute["interpolation"]
         return {
             "variogram_model": itp.get("variogram_model", "spherical"),
@@ -89,6 +118,9 @@ class AppConfig:
         }
 
     def get_location(self):
+        """
+        Returns location configuration as a dictionary.
+        """
         loc = self.compute["location"]
         return {
             "lat": loc.getfloat("lat", 49.8175),
